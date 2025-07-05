@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MarkDown Editör</title>
+    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link
+      href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+    <link rel="stylesheet" href="styles.css" />
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: { primary: "#2563eb", secondary: "#10b981" },
+            borderRadius: {
+              none: "0px",
+              sm: "4px",
+              DEFAULT: "8px",
+              md: "12px",
+              lg: "16px",
+              xl: "20px",
+              "2xl": "24px",
+              "3xl": "32px",
+              full: "9999px",
+              button: "8px",
+            },
+          },
+        },
+      };
+    </script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css"
+    />
+  </head>
+  <body class="flex flex-col min-h-screen bg-white dark:bg-gray-900">
+    <!-- Header -->
+    <header class="w-full bg-white dark:bg-gray-900 shadow-sm">
+      <div
+        class="container mx-auto px-4 py-3 flex justify-between items-center"
+      >
+        <div class="flex items-center space-x-2">
+          <h1 class="text-lg font-semibold text-gray-900 dark:text-white">
+            Markdown Editör
+          </h1>
+        </div>
+        <div class="flex items-center space-x-4">
+          <div class="relative">
+            <button
+              id="themeToggle"
+              class="flex items-center space-x-1 px-3 py-1.5 rounded-button border border-gray-200 dark:border-gray-600 text-sm bg-primary text-white dark:bg-gray-700 dark:text-white hover:bg-primary/90 dark:hover:bg-gray-600"
+            >
+              <span class="w-5 h-5 flex items-center justify-center"
+                ><i class="ri-contrast-2-line"></i
+              ></span>
+              <span>Tema</span>
+              <span class="w-4 h-4 flex items-center justify-center"
+                ><i class="ri-arrow-down-s-line"></i
+              ></span>
+            </button>
+            <div
+              id="themeMenu"
+              class="hidden absolute left-0 mt-1 w-40 bg-white dark:bg-gray-700 shadow-lg rounded-md border border-gray-200 dark:border-gray-600 z-50"
+            >
+              <ul class="py-1">
+                <li>
+                  <button
+                    data-theme="light"
+                    class="w-full text-left px-4 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600"
+                  >
+                    Açık Tema
+                  </button>
+                </li>
+                <li>
+                  <button
+                    data-theme="dark"
+                    class="w-full text-left px-4 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600"
+                  >
+                    Koyu Tema
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <span id="lastSaved" class="text-sm text-gray-700 dark:text-white"
+            >Son kayıt: -</span
+          >
+        </div>
+      </div>
+    </header>
+    <!-- Toolbar -->
+    <div
+      class="w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-600 sticky top-0 z-10"
+    >
+      <div class="container mx-auto px-4">
+        <div
+          class="markdown-toolbar flex items-center space-x-1 py-2 overflow-x-auto"
+        >
+          <button
+            id="boldBtn"
+            aria-label="Kalın metin ekle"
+            class="p-2 rounded-button text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+            title="Kalın (Ctrl+B)"
+          >
+            <span class="w-5 h-5 flex items-center justify-center"
+              ><i class="ri-bold"></i
+            ></span>
+          </button>
+          <button
+            id="italicBtn"
+            aria-label="İtalik metin ekle"
+            class="p-2 rounded-button text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+            title="İtalik (Ctrl+I)"
+          >
+            <span class="w-5 h-5 flex items-center justify-center"
+              ><i class="ri-italic"></i
+            ></span>
+          </button>
+          <button
+            id="strikeBtn"
+            aria-label="Üstü çizili metin ekle"
+            class="p-2 rounded-button text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+            title="Üstü Çizili (Ctrl+T)"
+          >
+            <span class="w-5 h-5 flex items-center justify-center"
+              ><i class="ri-strikethrough"></i
+            ></span>
+          </button>
+          <button
+            id="headingBtn"
+            aria-label="Başlık ekle"
+            class="p-2 rounded-button text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+            title="Başlık (Ctrl+H)"
+          >
+            <span class="w-5 h-5 flex items-center justify-center"
+              ><i class="ri-heading"></i
+            ></span>
+          </button>
+          <div
+            class="h-5 border-r border-gray-200 dark:border-gray-600 mx-1"
+          ></div>
+          <button
+            id="orderedListBtn"
+            aria-label="Sıralı liste ekle"
+            class="p-2 rounded-button text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+            title="Sıralı Liste"
+          >
+            <span class="w-5 h-5 flex items-center justify-center"
+              ><i class="ri-list-ordered"></i
+            ></span>
+          </button>
+          <button
+            id="unorderedListBtn"
+            aria-label="Sırasız liste ekle"
+            class="p-2 rounded-button text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+            title="Sırasız Liste"
+          >
+            <span class="w-5 h-5 flex items-center justify-center"
+              ><i class="ri-list-unordered"></i
+            ></span>
+          </button>
+          <button
+            id="checklistBtn"
+            aria-label="Checklist ekle"
+            class="p-2 rounded-button text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+            title="Checklist"
+          >
+            <span class="w-5 h-5 flex items-center justify-center"
+              ><i class="ri-checkbox-line"></i
+            ></span>
+          </button>
+          <div
+            class="h-5 border-r border-gray-200 dark:border-gray-600 mx-1"
+          ></div>
+          <button
+            id="linkBtn"
+            aria-label="Link ekle"
+            class="p-2 rounded-button text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+            title="Bağlantı (Ctrl+K)"
+          >
+            <span class="w-5 h-5 flex items-center justify-center"
+              ><i class="ri-link"></i
+            ></span>
+          </button>
+          <button
+            id="imageBtn"
+            aria-label="Resim ekle"
+            class="p-2 rounded-button text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+            title="Resim"
+          >
+            <span class="w-5 h-5 flex items-center justify-center"
+              ><i class="ri-image-line"></i
+            ></span>
+          </button>
+          <button
+            id="tableBtn"
+            aria-label="Tablo ekle"
+            class="p-2 rounded-button text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+            title="Tablo"
+          >
+            <span class="w-5 h-5 flex items-center justify-center"
+              ><i class="ri-table-line"></i
+            ></span>
+          </button>
+          <button
+            id="codeBlockBtn"
+            aria-label="Kod bloğu ekle"
+            class="p-2 rounded-button text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+            title="Kod Bloğu"
+          >
+            <span class="w-5 h-5 flex items-center justify-center"
+              ><i class="ri-code-box-line"></i
+            ></span>
+          </button>
+          <div
+            class="h-5 border-r border-gray-200 dark:border-gray-600 mx-1"
+          ></div>
+          <button
+            id="htmlViewBtn"
+            aria-label="HTML görünümü"
+            class="p-2 rounded-button text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+            title="HTML Görünümü"
+          >
+            <span class="w-5 h-5 flex items-center justify-center"
+              ><i class="ri-code-line"></i
+            ></span>
+          </button>
+          <button
+            id="syncScrollBtn"
+            aria-label="Senkronize kaydırma"
+            class="p-2 rounded-button text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+            title="Senkronize Kaydırma"
+          >
+            <span class="w-5 h-5 flex items-center justify-center"
+              ><i class="ri-arrow-up-down-line"></i
+            ></span>
+          </button>
+          <div
+            class="h-5 border-r border-gray-200 dark:border-gray-600 mx-1"
+          ></div>
+          <button
+            id="saveBtn"
+            aria-label="Kaydet"
+            class="p-2 rounded-button text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+            title="Kaydet (Ctrl+S)"
+          >
+            <span class="w-5 h-5 flex items-center justify-center"
+              ><i class="ri-save-line"></i
+            ></span>
+          </button>
+          <div class="flex items-center space-x-1">
+            <button
+              id="exportBtn"
+              aria-label="Dışa aktar"
+              class="p-2 rounded-button text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+              title="Dışa Aktar"
+            >
+              <span class="w-5 h-5 flex items-center justify-center"
+                ><i class="ri-download-line"></i
+              ></span>
+            </button>
+            <button
+              id="importBtn"
+              aria-label="İçe aktar"
+              class="p-2 rounded-button text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+              title="İçe Aktar"
+            >
+              <span class="w-5 h-5 flex items-center justify-center"
+                ><i class="ri-upload-line"></i
+              ></span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Main Content -->
+    <main
+      class="flex-grow container mx-auto px-4 py-6 bg-white dark:bg-gray-900"
+    >
+      <div class="flex flex-col md:flex-row gap-6">
+        <!-- Editor Section -->
+        <div class="w-full md:w-1/2">
+          <div class="mb-2 text-sm font-medium text-gray-900 dark:text-white">
+            Markdown
+          </div>
+          <div
+            class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-md shadow-sm overflow-hidden"
+          >
+            <textarea
+              id="markdownEditor"
+              class="editor-content w-full p-4 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-gray-900 dark:text-white"
+              placeholder="Markdown metninizi buraya yazın..."
+            >
+### Markdown Editörüne Hoş Geldiniz
+Bu basit ve kullanışlı editör ile Markdown formatında metinler yazabilirsiniz.
+**Kalın metin** veya *italik metin* oluşturabilirsiniz.
+- Madde işaretli listeler
+- Çok kolay
+1. Numaralı listeler de
+2. Yapabilirsiniz
+[Bağlantılar](https://example.com) ekleyebilir ve `kod` yazabilirsiniz.
+```javascript
+// Kod blokları da oluşturabilirsiniz
+function selamVer() {
+console.log("Merhaba Dünya!");
+}
+```
+> Alıntılar da yapabilirsiniz.
+Markdown ile belge oluşturmak çok kolay!</textarea
+            >
+          </div>
+          <div
+            id="wordCount"
+            class="mt-2 text-sm text-gray-700 dark:text-gray-300"
+          >
+            Kelime: 0 | Karakter: 0
+          </div>
+        </div>
+        <!-- Preview Section -->
+        <div class="w-full md:w-1/2">
+          <div class="mb-2 text-sm font-medium text-gray-900 dark:text-white">
+            Önizleme
+          </div>
+          <div
+            id="preview"
+            class="markdown-preview p-4 border rounded-button overflow-y-auto bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+          ></div>
+        </div>
+      </div>
+    </main>
+    <!-- Footer -->
+    <footer
+      class="w-full bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-600 py-4"
+    >
+      <div class="container mx-auto px-4 flex justify-between items-center">
+        <div class="text-sm text-gray-900 dark:text-white">
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            © 2025 MarkDown Editör.
+            <a
+              href="https://github.com/developerharmony"
+              target="_blank"
+              class="text-primary hover:text-primary dark:text-primary dark:hover:text-primary transition-colors"
+              >Harmony</a
+            >
+            tarafından geliştirilmiştir. Tüm hakları saklıdır.
+          </p>
+        </div>
+        <div class="flex items-center space-x-4">
+          <a
+            href="https://linkedin.com"
+            target="_blank"
+            class="text-gray-900 dark:text-white hover:text-primary"
+            aria-label="LinkedIn"
+          >
+            <i class="ri-linkedin-box-fill text-xl"></i>
+          </a>
+          <a
+            href="https://github.com/developerharmony"
+            target="_blank"
+            class="text-gray-900 dark:text-white hover:text-primary"
+            aria-label="GitHub"
+          >
+            <i class="ri-github-fill text-xl"></i>
+          </a>
+          <a
+            href="https://x.com"
+            target="_blank"
+            class="text-gray-900 dark:text-white hover:text-primary"
+            aria-label="X"
+          >
+            <i class="ri-twitter-x-fill text-xl"></i>
+          </a>
+          <button
+            id="helpButton"
+            class="text-sm text-gray-900 dark:text-white hover:text-primary flex items-center space-x-1"
+          >
+            <span class="w-4 h-4 flex items-center justify-center"
+              ><i class="ri-question-line"></i
+            ></span>
+            <span>Markdown Yardım</span>
+          </button>
+        </div>
+      </div>
+    </footer>
+    <!-- Help Modal -->
+    <div
+      id="helpModal"
+      class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        class="bg-white dark:bg-gray-700 rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+      >
+        <div
+          class="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-600"
+        >
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+            Markdown Yardım
+          </h2>
+          <button
+            id="closeHelpModal"
+            class="text-gray-900 dark:text-white hover:text-primary"
+          >
+            <span class="w-5 h-5 flex items-center justify-center"
+              ><i class="ri-close-line"></i
+            ></span>
+          </button>
+        </div>
+        <div class="p-4 space-y-4">
+          <div>
+            <h3 class="font-medium mb-2 text-gray-900 dark:text-white">
+              Temel Markdown Sözdizimi
+            </h3>
+            <table class="w-full border-collapse">
+              <thead>
+                <tr class="bg-gray-50 dark:bg-gray-700">
+                  <th
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2 text-left text-gray-900 dark:text-white"
+                  >
+                    Yazım
+                  </th>
+                  <th
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2 text-left text-gray-900 dark:text-white"
+                  >
+                    Sonuç
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2 font-mono text-sm text-gray-900 dark:text-white"
+                  >
+                    # Başlık 1
+                  </td>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2"
+                  >
+                    <h1 class="text-2xl text-gray-900 dark:text-white">
+                      Başlık 1
+                    </h1>
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2 font-mono text-sm text-gray-900 dark:text-white"
+                  >
+                    ## Başlık 2
+                  </td>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2"
+                  >
+                    <h2 class="text-xl text-gray-900 dark:text-white">
+                      Başlık 2
+                    </h2>
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2 font-mono text-sm text-gray-900 dark:text-white"
+                  >
+                    **Kalın**
+                  </td>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2"
+                  >
+                    <strong class="text-gray-900 dark:text-white">Kalın</strong>
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2 font-mono text-sm text-gray-900 dark:text-white"
+                  >
+                    *İtalik*
+                  </td>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2"
+                  >
+                    <em class="text-gray-900 dark:text-white">İtalik</em>
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2 font-mono text-sm text-gray-900 dark:text-white"
+                  >
+                    ~~Üstü Çizili~~
+                  </td>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2"
+                  >
+                    <del class="text-gray-900 dark:text-white">Üstü Çizili</del>
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2 font-mono text-sm text-gray-900 dark:text-white"
+                  >
+                    [Bağlantı](https://example.com)
+                  </td>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2"
+                  >
+                    <a href="#" class="text-primary">Bağlantı</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2 font-mono text-sm text-gray-900 dark:text-white"
+                  >
+                    ![Resim](https://example.com/image.jpg)
+                  </td>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2"
+                  >
+                    <img
+                      src="https://via.placeholder.com/150"
+                      alt="Resim"
+                      class="h-10"
+                    />
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2 font-mono text-sm text-gray-900 dark:text-white"
+                  >
+                    - [ ] Checklist öğesi<br />- [x] İşaretli checklist öğesi
+                  </td>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2"
+                  >
+                    <input type="checkbox" disabled /> Checklist öğesi<br /><input
+                      type="checkbox"
+                      checked
+                      disabled
+                    />
+                    İşaretli checklist öğesi
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2 font-mono text-sm text-gray-900 dark:text-white"
+                  >
+                    | Başlık | Başlık |<br />|-------|-------|<br />| Hücre |
+                    Hücre |
+                  </td>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2"
+                  >
+                    <table>
+                      <tr>
+                        <th class="text-gray-900 dark:text-white">Başlık</th>
+                        <th class="text-gray-900 dark:text-white">Başlık</th>
+                      </tr>
+                      <tr>
+                        <td>Hücre</td>
+                        <td>Hücre</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2 font-mono text-sm text-gray-900 dark:text-white"
+                  >
+                    - Liste öğesi
+                  </td>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2"
+                  >
+                    <ul class="list-disc pl-5">
+                      <li class="text-gray-900 dark:text-white">Liste öğesi</li>
+                    </ul>
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2 font-mono text-sm text-gray-900 dark:text-white"
+                  >
+                    1. Numaralı öğe
+                  </td>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2"
+                  >
+                    <ol class="list-decimal pl-5">
+                      <li class="text-gray-900 dark:text-white">
+                        Numaralı öğe
+                      </li>
+                    </ol>
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2 font-mono text-sm text-gray-900 dark:text-white"
+                  >
+                    `Kod`
+                  </td>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2"
+                  >
+                    <code
+                      class="bg-gray-100 dark:bg-gray-700 px-1 rounded text-gray-900 dark:text-white"
+                      >Kod</code
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div>
+            <h3 class="font-medium mb-2 text-gray-900 dark:text-white">
+              Klavye Kısayolları
+            </h3>
+            <table class="w-full border-collapse">
+              <thead>
+                <tr class="bg-gray-50 dark:bg-gray-700">
+                  <th
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2 text-left text-gray-900 dark:text-white"
+                  >
+                    Kısayol
+                  </th>
+                  <th
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2 text-left text-gray-900 dark:text-white"
+                  >
+                    İşlev
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2 font-mono text-sm text-gray-900 dark:text-white"
+                  >
+                    Ctrl+B
+                  </td>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2 text-gray-900 dark:text-white"
+                  >
+                    Kalın
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2 font-mono text-sm text-gray-900 dark:text-white"
+                  >
+                    Ctrl+I
+                  </td>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2 text-gray-900 dark:text-white"
+                  >
+                    İtalik
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2 font-mono text-sm text-gray-900 dark:text-white"
+                  >
+                    Ctrl+T
+                  </td>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2 text-gray-900 dark:text-white"
+                  >
+                    Üstü Çizili
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2 font-mono text-sm text-gray-900 dark:text-white"
+                  >
+                    Ctrl+K
+                  </td>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2 text-gray-900 dark:text-white"
+                  >
+                    Bağlantı
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2 font-mono text-sm text-gray-900 dark:text-white"
+                  >
+                    Ctrl+S
+                  </td>
+                  <td
+                    class="border border-gray-200 dark:border-gray-600 px-4 py-2 text-gray-900 dark:text-white"
+                  >
+                    Kaydet
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div
+          class="p-4 border-t border-gray-200 dark:border-gray-600 flex justify-end"
+        >
+          <button
+            id="closeHelpModalBtn"
+            class="px-4 py-2 bg-primary text-white rounded-button hover:bg-primary/90 whitespace-nowrap"
+          >
+            Kapat
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- Export Modal -->
+    <div
+      id="exportModal"
+      class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        class="bg-white dark:bg-gray-700 rounded-lg shadow-xl max-w-md w-full"
+      >
+        <div
+          class="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-600"
+        >
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+            Dosyayı Dışa Aktar
+          </h2>
+          <button
+            id="closeExportModal"
+            class="text-gray-900 dark:text-white hover:text-primary"
+          >
+            <span class="w-5 h-5 flex items-center justify-center"
+              ><i class="ri-close-line"></i
+            ></span>
+          </button>
+        </div>
+        <div class="p-4">
+          <p class="text-sm text-gray-900 dark:text-white mb-4">
+            Dışa aktarma formatını seçin:
+          </p>
+          <div class="flex flex-col space-y-3">
+            <button
+              id="exportMarkdownBtn"
+              class="px-4 py-2 bg-primary text-white rounded-button hover:bg-primary/90 whitespace-nowrap"
+            >
+              Markdown (.md)
+            </button>
+            <button
+              id="exportHtmlBtn"
+              class="px-4 py-2 bg-primary text-white rounded-button hover:bg-primary/90 whitespace-nowrap"
+            >
+              HTML (.html)
+            </button>
+            <button
+              id="exportPdfBtn"
+              class="px-4 py-2 bg-primary text-white rounded-button hover:bg-primary/90 whitespace-nowrap"
+            >
+              PDF (.pdf)
+            </button>
+          </div>
+        </div>
+        <div
+          class="p-4 border-t border-gray-200 dark:border-gray-600 flex justify-end"
+        >
+          <button
+            id="closeExportModalBtn"
+            class="px-4 py-2 text-gray-900 dark:text-white hover:text-primary rounded-button border border-gray-200 dark:border-gray-600 whitespace-nowrap"
+          >
+            İptal
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- Toast Notification -->
+    <div
+      id="toast"
+      class="fixed top-4 right-4 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shadow-lg rounded-md px-4 py-3 flex items-center space-x-3 hidden"
+    >
+      <span class="w-5 h-5 flex items-center justify-center text-green-500"
+        ><i class="ri-check-line"></i
+      ></span>
+      <span id="toastMessage" class="text-gray-900 dark:text-white"
+        >İşlem başarıyla tamamlandı</span
+      >
+    </div>
+    <script defer src="script.js"></script>
+  </body>
+</html>
